@@ -2,8 +2,6 @@
 
 An interactive web-based simulator for visualizing and comparing CPU Scheduling Algorithms in real-time. Built as a 4th Semester Operating Systems project.
 
-![CPU Scheduler Demo](screenshot.png)
-
 ---
 
 ## 🔗 Live Demo

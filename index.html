@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPU Scheduler Demonstrator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>⚙️ CPU Scheduler Demonstrator</h1>
+        <p class="subtitle">Visualize and compare CPU scheduling algorithms in real-time</p>
+
+        <!-- Algorithm Selection -->
+        <div class="panel">
+            <div class="panel-title"><span class="icon">📋</span> Select Algorithm</div>
+            <div class="algo-selection" id="algoSelection">
+                <button class="algo-btn active" data-algo="fcfs">FCFS</button>
+                <button class="algo-btn" data-algo="sjf">SJF (Non-Preemptive)</button>
+                <button class="algo-btn" data-algo="srtf">SRTF (Preemptive SJF)</button>
+                <button class="algo-btn" data-algo="rr">Round Robin</button>
+                <button class="algo-btn" data-algo="priority-np">Priority (Non-Preemptive)</button>
+                <button class="algo-btn" data-algo="priority-p">Priority (Preemptive)</button>
+            </div>
+            <div class="algo-desc" id="algoDesc">
+                <strong>First Come First Serve (FCFS):</strong> Processes are executed in the order they arrive. Simple but can cause convoy effect.
+            </div>
+            <div class="tq-container" id="tqContainer">
+                <label>Time Quantum:</label>
+                <input type="number" id="timeQuantum" value="2" min="1" max="20">
+            </div>
+        </div>
+
+        <!-- Process Input -->
+        <div class="panel" id="inputPanel">
+            <div class="panel-title"><span class="icon">➕</span> Add Processes</div>
+            <div class="input-row">
+                <div class="input-group">
+                    <label>Process ID</label>
+                    <input type="text" id="processId" placeholder="P1" readonly>
+                </div>
+                <div class="input-group">
+                    <label>Arrival Time</label>
+                    <input type="number" id="arrivalTime" placeholder="0" min="0" value="0">
+                </div>
+                <div class="input-group">
+                    <label>Burst Time</label>
+                    <input type="number" id="burstTime" placeholder="1" min="1" value="1">
+                </div>
+                <div class="input-group priority-col">
+                    <label>Priority</label>
+                    <input type="number" id="priorityVal" placeholder="1" min="1" value="1">
+                </div>
+                <button class="btn btn-add" onclick="addProcess()">➕ Add</button>
+            </div>
+
+            <div class="action-btns">
+                <button class="btn btn-random" onclick="generateRandom()">🎲 Random (5)</button>
+                <button class="btn btn-clear" onclick="clearAll()">🗑️ Clear All</button>
+            </div>
+
+            <div id="processTableContainer">
+                <table class="process-table" id="processTable">
+                    <thead>
+                        <tr>
+                            <th>Color</th>
+                            <th>Process</th>
+                            <th>Arrival</th>
+                            <th>Burst</th>
+                            <th class="priority-col">Priority</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="processTableBody">
+                    </tbody>
+                </table>
+                <div class="empty-state" id="emptyState">
+                    <div class="icon">📭</div>
+                    <p>No processes added yet. Add some processes to get started!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Run Controls -->
+        <div class="panel" id="controlPanel" style="display:none;">
+            <div class="panel-title"><span class="icon">▶️</span> Simulation Controls</div>
+            <div class="step-controls">
+                <button class="btn btn-run" onclick="runSimulation()">▶️ Run Full</button>
+                <button class="btn btn-step" id="btnStepPlay" onclick="startAutoStep()">⏩ Auto Play</button>
+                <button class="btn btn-step" id="btnStepPause" onclick="pauseAutoStep()" style="display:none;">⏸️ Pause</button>
+                <button class="btn btn-step" onclick="stepForward()">⏭️ Step</button>
+                <button class="btn btn-step" onclick="resetSimulation()">🔄 Reset</button>
+                <div class="speed-control">
+                    <span>Speed:</span>
+                    <input type="range" id="speedSlider" min="1" max="10" value="5">
+                    <span id="speedLabel">5x</span>
+                </div>
+            </div>
+
+            <!-- CPU Visual -->
+            <div class="cpu-visual" id="cpuVisual">
+                <div>
+                    <div class="rq-label">Ready Queue:</div>
+                    <div class="ready-queue" id="readyQueue">
+                        <span style="color:#555;">Empty</span>
+                    </div>
+                </div>
+                <div class="arrow">➡️</div>
+                <div class="cpu-box" id="cpuBox">
+                    <span class="label">CPU</span>
+                    <span class="process-name" id="cpuProcess">-</span>
+                    <span class="time-info" id="cpuTime">Idle</span>
+                </div>
+                <div class="arrow">➡️</div>
+                <div>
+                    <div class="rq-label">Completed:</div>
+                    <div class="ready-queue" id="completedQueue">
+                        <span style="color:#555;">None</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Log -->
+            <div class="log-container" id="logContainer">
+                <div class="log-entry"><span class="info">Simulation ready. Click Run or Step to begin.</span></div>
+            </div>
+        </div>
+
+        <!-- Gantt Chart -->
+        <div class="panel" id="ganttPanel" style="display:none;">
+            <div class="panel-title"><span class="icon">📊</span> Gantt Chart</div>
+            <div class="gantt-wrapper">
+                <div class="gantt-chart" id="ganttChart"></div>
+            </div>
+            <div class="timeline-container" id="timelineContainer">
+                <div class="timeline-cursor" id="timelineCursor"></div>
+            </div>
+        </div>
+
+        <!-- Queue State Diagram (Round Robin) -->
+        <div class="panel" id="queueStatePanel" style="display:none;">
+            <div class="panel-title"><span class="icon">🔄</span> Queue State Diagram (Round Robin)</div>
+            <div class="queue-state-wrapper" id="queueStateWrapper"></div>
+        </div>
+
+        <!-- Results -->
+        <div class="panel" id="resultsPanel" style="display:none;">
+            <div class="panel-title"><span class="icon">📈</span> Results</div>
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>Process</th>
+                        <th>Arrival</th>
+                        <th>Burst</th>
+                        <th>Completion</th>
+                        <th>Turnaround</th>
+                        <th>Waiting</th>
+                        <th>Response</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsTableBody">
+                </tbody>
+            </table>
+
+            <div class="stats-grid" id="statsGrid"></div>
+        </div>
+
+        <!-- Comparison -->
+        <div class="panel" id="comparePanel" style="display:none;">
+            <div class="panel-title"><span class="icon">⚖️</span> Algorithm Comparison</div>
+            <button class="btn btn-random" onclick="runComparison()" style="margin-bottom:15px;">🔄 Compare All Algorithms</button>
+            <table class="compare-table" id="compareTable">
+                <thead>
+                    <tr>
+                        <th>Algorithm</th>
+                        <th>Avg Turnaround</th>
+                        <th>Avg Waiting</th>
+                        <th>Avg Response</th>
+                        <th>Context Switches</th>
+                        <th>CPU Utilization</th>
+                    </tr>
+                </thead>
+                <tbody id="compareTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
